@@ -1,5 +1,7 @@
 "use client";
 
+import type { HomeProduct } from "@/lib/api/home";
+import { mediaUrl } from "@/lib/api/media";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -10,24 +12,21 @@ type Product = {
   src: string;
   name: string;
   price: number;
-  color: string;
+  color?: string;
 };
 
-const products: Product[] = [
-  { id: "w-2", src: "/images/women/m-1.jpg", name: "Womens Saree", price: 1550, color: "#dc2626" },
-  { id: "w-3", src: "/images/women/m-2.jpg", name: "Womens Saree", price: 1550, color: "#ec4899" },
-  { id: "w-4", src: "/images/women/m-3.jpg", name: "Womens Saree", price: 1550, color: "#e5e7eb" },
-  { id: "w-5", src: "/images/women/m-4.jpg", name: "Womens 2 Pcs Set – Regular Fit", price: 2890, color: "#f9a8d4" },
-  { id: "w-6", src: "/images/women/m-5.jpg", name: "Womens Ethnic – Regular Fit", price: 2690, color: "#dc2626" },
-  { id: "w-1", src: "/images/women/women.avif", name: "Womens Floral Kurti Set", price: 2490, color: "#fda4af" },
-  { id: "m-1", src: "/images/men/men.avif", name: "Mens Patterned Shirt – Regular Fit", price: 2190, color: "#12509b" },
-  { id: "m-2", src: "/images/men/w-1.jpg", name: "Mens Casual – Regular Fit", price: 1550, color: "#12509b" },
-  { id: "m-3", src: "/images/men/w-2.jpg", name: "Mens Everyday Shirt", price: 1750, color: "#1e3a8a" },
-  { id: "m-4", src: "/images/men/w-3.jpg", name: "Mens Winter Essential", price: 2290, color: "#71717a" },
-  { id: "m-5", src: "/images/men/w-4.jpg", name: "Mens Classic Fit", price: 1990, color: "#1f2937" },
-];
+export default function NewCollection({
+  products: apiProducts,
+}: {
+  products?: HomeProduct[];
+}) {
+  const products: Product[] = (apiProducts ?? []).map((p) => ({
+    id: String(p.id),
+    src: mediaUrl(p.primary_image),
+    name: p.name,
+    price: p.price,
+  }));
 
-export default function NewCollection() {
   const scrollerRef = useRef<HTMLDivElement>(null);
   const [pages, setPages] = useState(1);
   const [activePage, setActivePage] = useState(0);
@@ -35,10 +34,12 @@ export default function NewCollection() {
   useEffect(() => {
     const scroller = scrollerRef.current;
     if (!scroller) return;
-    const update = () => {
-      setPages(Math.max(1, Math.ceil(scroller.scrollWidth / scroller.clientWidth)));
-      setActivePage(Math.round(scroller.scrollLeft / scroller.clientWidth));
-    };
+      const update = () => {
+        const width = scroller.clientWidth;
+        if (width <= 0) return;
+        setPages(Math.max(1, Math.ceil(scroller.scrollWidth / width)));
+        setActivePage(Math.round(scroller.scrollLeft / width));
+      };
     update();
     scroller.addEventListener("scroll", update, { passive: true });
     window.addEventListener("resize", update);
@@ -63,6 +64,8 @@ export default function NewCollection() {
     scroller.scrollTo({ left: page * scroller.clientWidth, behavior: "smooth" });
   };
 
+  if (products.length === 0) return null;
+
   return (
     <section className="w-full bg-[#eef1fa] px-4 py-6">
       <div className="mb-5 flex items-center justify-between gap-4">
@@ -85,7 +88,7 @@ export default function NewCollection() {
         >
           {products.map((product) => (
             <Link
-              key={product.src}
+              key={product.id}
               href={`/product/${product.id}`}
               className="group flex w-52 shrink-0 flex-col overflow-hidden rounded-xl bg-white shadow-sm transition-shadow hover:shadow-md sm:w-56"
             >
@@ -108,11 +111,13 @@ export default function NewCollection() {
                 <span className="text-lg font-extrabold text-zinc-900">
                   ৳ {product.price}
                 </span>
-                <span
-                  aria-hidden
-                  className="block h-3.5 w-3.5 rounded-md border border-black/10"
-                  style={{ backgroundColor: product.color }}
-                />
+                {product.color && (
+                  <span
+                    aria-hidden
+                    className="block h-3.5 w-3.5 rounded-md border border-black/10"
+                    style={{ backgroundColor: product.color }}
+                  />
+                )}
                 <span className="min-h-[2.5rem] text-center text-sm leading-snug text-zinc-700">
                   {product.name}
                 </span>

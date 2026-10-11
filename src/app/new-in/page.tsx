@@ -1,5 +1,5 @@
 import CatalogPageLayout from "@/components/CatalogPageLayout";
-import { catalog } from "@/lib/catalog";
+import { getProducts } from "@/lib/api/products";
 
 export const metadata = {
   title: "New In — Loomora",
@@ -46,27 +46,10 @@ const brands = [
   "Loomora Kids",
 ];
 
-const newInIds = [
-  "m-1",
-  "m-3",
-  "m-6",
-  "m-8",
-  "m-11",
-  "w-1",
-  "w-2",
-  "w-5",
-  "w-8",
-  "w-9",
-  "k-1",
-  "k-3",
-  "k-6",
-  "k-9",
-  "k-10",
-];
+export default async function NewInPage() {
+  const api = await getProducts({ badge: "new_arrival", per_page: 100 });
+  const products = api?.products ?? [];
 
-const products = catalog.filter((product) => newInIds.includes(product.id));
-
-export default function NewInPage() {
   return (
     <CatalogPageLayout
       title="New In"

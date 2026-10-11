@@ -1,5 +1,5 @@
 import CatalogPageLayout from "@/components/CatalogPageLayout";
-import { catalog } from "@/lib/catalog";
+import { getProducts } from "@/lib/api/products";
 
 export const metadata = {
   title: "Women's Fashion & Clothing — Loomora",
@@ -36,9 +36,10 @@ const categories = [
 
 const brands = ["Loomora", "DHEU", "Loomora Women", "Loomora Signature"];
 
-const products = catalog.filter((product) => product.id.startsWith("w-"));
+export default async function WomenPage() {
+  const api = await getProducts({ category: "women", per_page: 100 });
+  const products = api?.products ?? [];
 
-export default function WomenPage() {
   return (
     <CatalogPageLayout
       title="Womens"

@@ -16,3 +16,26 @@ export const navLinks: NavLink[] = [
   { href: "/women", label: "Womens" },
   { href: "/kids", label: "Kids" },
 ];
+
+const categoryLinks: NavLink[] = [
+  { href: "/men", label: "Mens" },
+  { href: "/women", label: "Womens" },
+  { href: "/kids", label: "Kids" },
+];
+
+export function buildNavLinks(
+  apiMenu?: { label: string; href: string; highlight?: boolean }[] | null,
+): NavLink[] {
+  if (!apiMenu?.length) return navLinks;
+
+  const fromApi: NavLink[] = apiMenu.map((item) => ({
+    href: item.href,
+    label: item.label,
+    highlight: item.highlight,
+  }));
+
+  const apiHrefs = new Set(fromApi.map((l) => l.href));
+  const extras = categoryLinks.filter((l) => !apiHrefs.has(l.href));
+
+  return [...fromApi, ...extras];
+}

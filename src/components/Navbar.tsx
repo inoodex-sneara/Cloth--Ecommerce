@@ -5,7 +5,8 @@ import MensMenu from "@/components/MensMenu";
 import MobileMenu from "@/components/MobileMenu";
 import { catalog } from "@/lib/catalog";
 import WomensMenu from "@/components/WomensMenu";
-import { navLinks } from "@/lib/navigation";
+import { buildNavLinks } from "@/lib/navigation";
+import type { StoreSettings } from "@/lib/api/settings";
 import { useCart } from "@/providers/CartProvider";
 import { useWishlist } from "@/providers/WishlistProvider";
 import {
@@ -93,7 +94,7 @@ function SearchForm({
             }}
             onFocus={() => setIsOpen(true)}
             placeholder="I'm shopping for ..."
-            className="h-9 w-full rounded-l-md border-2 border-[#12509b] px-3 pr-8 text-sm text-zinc-800 outline-none placeholder:text-zinc-400"
+            className="h-9 w-full rounded-l-md border-2 border-[#12509b] px-3 pr-8 text-base text-zinc-800 outline-none placeholder:text-zinc-400"
           />
           {query && (
             <button
@@ -189,10 +190,11 @@ function IconBadge({ count }: { count: number }) {
   );
 }
 
-export default function Navbar() {
+export default function Navbar({ settings }: { settings: StoreSettings }) {
   const { count } = useCart();
   const { count: wishlistCount } = useWishlist();
   const pathname = usePathname();
+  const navLinks = buildNavLinks(settings.navigation_menu);
 
   return (
     <header className="sticky top-0 z-50 w-full bg-white shadow-xs">
@@ -202,10 +204,10 @@ export default function Navbar() {
           className="ml-2 flex shrink-0 flex-col leading-none sm:ml-5"
         >
           <span className="text-2xl font-extrabold tracking-tight text-[#12509b] sm:text-[2rem]">
-            Loomora
+            {settings.store_name}
           </span>
           <span className="mt-0.5 text-[9px] font-semibold uppercase tracking-[0.3em] text-zinc-500">
-            lifestyle ltd
+            {settings.store_tagline}
           </span>
         </Link>
 
@@ -271,7 +273,7 @@ export default function Navbar() {
                 <Link
                   key={link.href}
                   href={link.href}
-                  className={`whitespace-nowrap text-[13px] transition-colors hover:text-[#12509b] xl:text-sm ${
+                  className={`whitespace-nowrap text-sm transition-colors hover:text-[#12509b] xl:text-[15px] ${
                     active
                       ? "font-bold text-[#12509b] underline underline-offset-4"
                       : link.highlight
@@ -285,14 +287,14 @@ export default function Navbar() {
             })}
           </nav>
 
-          <div className="ml-auto hidden shrink-0 items-center gap-5 text-xs font-semibold text-[#12509b] sm:text-sm lg:flex">
+          <div className="ml-auto hidden shrink-0 items-center gap-5 text-sm font-semibold text-[#12509b] sm:text-[15px] lg:flex">
             <Link href="/order-tracking" className="flex items-center gap-1.5">
               <Truck className="h-4 w-4" />
               Order Tracking
             </Link>
           </div>
 
-          <MobileMenu />
+          <MobileMenu storeName={settings.store_name} navLinks={navLinks} />
         </div>
       </div>
     </header>

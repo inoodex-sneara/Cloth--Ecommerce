@@ -1,5 +1,7 @@
 "use client";
 
+import type { HomeCampaign } from "@/lib/api/home";
+import { mediaUrl } from "@/lib/api/media";
 import { ArrowRight, ChevronLeft, ChevronRight, Zap } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -11,84 +13,9 @@ type Deal = {
   name: string;
   price: number;
   oldPrice: number;
-  color: string;
-  available: number;
+  color?: string;
+  available?: number;
 };
-
-const deals: Deal[] = [
-  {
-    id: "m-6",
-    src: "/images/c-1.avif",
-    name: "Rust Bomber Jacket",
-    price: 2000,
-    oldPrice: 2500,
-    color: "#b45309",
-    available: 91,
-  },
-  {
-    id: "m-9",
-    src: "/images/c-3.avif",
-    name: "Classic Denim Trucker Jacket",
-    price: 2199,
-    oldPrice: 2500,
-    color: "#1e3a8a",
-    available: 96,
-  },
-  {
-    id: "w-8",
-    src: "/images/c-2.avif",
-    name: "Everyday White Sweatshirt",
-    price: 6000,
-    oldPrice: 6900,
-    color: "#f5f5f4",
-    available: 4,
-  },
-  {
-    id: "m-10",
-    src: "/images/c-7.avif",
-    name: "Grey Cotton Tee",
-    price: 2690,
-    oldPrice: 3500,
-    color: "#71717a",
-    available: 99,
-  },
-  {
-    id: "w-7",
-    src: "/images/c-10.avif",
-    name: "Knit Cardigan Rose",
-    price: 23590,
-    oldPrice: 27400,
-    color: "#fda4af",
-    available: 5,
-  },
-  {
-    id: "m-11",
-    src: "/images/c-8.avif",
-    name: "Hoodie & Denim Combo Set",
-    price: 1224,
-    oldPrice: 1360,
-    color: "#12509b",
-    available: 17,
-  },
-  {
-    id: "m-7",
-    src: "/images/c-6.avif",
-    name: "Crimson Blazer Formal",
-    price: 4500,
-    oldPrice: 5200,
-    color: "#dc2626",
-    available: 12,
-  },
-  {
-    id: "m-8",
-    src: "/images/c-9.avif",
-    name: "Crisp White Shirt",
-    price: 1750,
-    oldPrice: 2100,
-    color: "#ffffff",
-    available: 64,
-  },
-];
 
 function msUntilMidnight() {
   const now = new Date();
@@ -138,7 +65,23 @@ function Countdown() {
   );
 }
 
-export default function DailyDeals() {
+export default function DailyDeals({
+  campaign,
+}: {
+  campaign?: HomeCampaign;
+}) {
+  const deals: Deal[] = (campaign?.items ?? []).map((item) => ({
+    id: String(item.product_id),
+    src: mediaUrl(item.product.primary_image),
+    name: item.product.name,
+    price: item.flash_price,
+    oldPrice: item.product.compare_price ?? item.product.price,
+    available: Math.max(
+      0,
+      (item.quantity_limit ?? 0) - (item.sold_count ?? 0)
+    ),
+  }));
+
   const scrollerRef = useRef<HTMLDivElement>(null);
   const [pages, setPages] = useState(1);
   const [activePage, setActivePage] = useState(0);
@@ -147,8 +90,10 @@ export default function DailyDeals() {
     const scroller = scrollerRef.current;
     if (!scroller) return;
     const update = () => {
-      setPages(Math.max(1, Math.ceil(scroller.scrollWidth / scroller.clientWidth)));
-      setActivePage(Math.round(scroller.scrollLeft / scroller.clientWidth));
+      const width = scroller.clientWidth;
+      if (width <= 0) return;
+      setPages(Math.max(1, Math.ceil(scroller.scrollWidth / width)));
+      setActivePage(Math.round(scroller.scrollLeft / width));
     };
     update();
     scroller.addEventListener("scroll", update, { passive: true });
@@ -173,6 +118,8 @@ export default function DailyDeals() {
     if (!scroller) return;
     scroller.scrollTo({ left: page * scroller.clientWidth, behavior: "smooth" });
   };
+
+  if (deals.length === 0) return null;
 
   return (
     <section className="w-full px-4 pb-6">
@@ -236,29 +183,35 @@ export default function DailyDeals() {
                     </span>
                   </div>
 
-                  <span
-                    aria-hidden
-                    className="mx-auto block h-3.5 w-3.5 rounded-full border border-black/10"
-                    style={{ backgroundColor: deal.color }}
-                  />
+                  {deal.color && (
+                    <span
+                      aria-hidden
+                      className="mx-auto block h-3.5 w-3.5 rounded-full border border-black/10"
+                      style={{ backgroundColor: deal.color }}
+                    />
+                  )}
 
                   <p className="line-clamp-2 min-h-[2.5rem] text-center text-sm leading-snug text-zinc-700">
                     {deal.name}
                   </p>
 
-                  <div className="h-1.5 w-full overflow-hidden rounded-full bg-zinc-200">
-                    <div
-                      className="h-full rounded-full bg-[#12509b]"
-                      style={{ width: `${Math.min(100, deal.available)}%` }}
-                    />
-                  </div>
+                  {deal.available !== undefined && (
+                    <>
+                      <div className="h-1.5 w-full overflow-hidden rounded-full bg-zinc-200">
+                        <div
+                          className="h-full rounded-full bg-[#12509b]"
+                          style={{ width: `${Math.min(100, deal.available)}%` }}
+                        />
+                      </div>
 
-                  <p className="text-center text-sm text-zinc-600">
-                    Available :{" "}
-                    <span className="font-bold text-[#12509b]">
-                      {deal.available}
-                    </span>
-                  </p>
+                      <p className="text-center text-sm text-zinc-600">
+                        Available :{" "}
+                        <span className="font-bold text-[#12509b]">
+                          {deal.available}
+                        </span>
+                      </p>
+                    </>
+                  )}
                 </div>
               </Link>
             ))}

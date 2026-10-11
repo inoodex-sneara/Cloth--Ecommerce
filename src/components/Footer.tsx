@@ -1,5 +1,6 @@
 "use client";
 
+import type { StoreSettings } from "@/lib/api/settings";
 import { Mail, MapPin, Phone, Apple, Play } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -84,13 +85,16 @@ function LinkedinIcon() {
   );
 }
 
-const socials = [
-  { label: "Facebook", Icon: FacebookIcon },
-  { label: "Instagram", Icon: InstagramIcon },
-  { label: "YouTube", Icon: YoutubeIcon },
-  { label: "X", Icon: XIcon },
-  { label: "LinkedIn", Icon: LinkedinIcon },
-];
+function buildSocials(settings: StoreSettings) {
+  const all = [
+    { label: "Facebook", Icon: FacebookIcon, url: settings.social_facebook },
+    { label: "Instagram", Icon: InstagramIcon, url: settings.social_instagram },
+    { label: "YouTube", Icon: YoutubeIcon, url: settings.social_youtube },
+    { label: "X", Icon: XIcon, url: settings.social_twitter },
+    { label: "LinkedIn", Icon: LinkedinIcon, url: null as string | null },
+  ];
+  return all.filter((s) => s.url);
+}
 
 function LinkColumn({
   title,
@@ -119,7 +123,9 @@ function LinkColumn({
   );
 }
 
-export default function Footer() {
+export default function Footer({ settings }: { settings: StoreSettings }) {
+  const socials = buildSocials(settings);
+
   return (
     <footer className="mt-auto w-full border-t border-zinc-200 bg-white">
       <div className="grid w-full gap-8 px-4 py-10 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
@@ -128,22 +134,24 @@ export default function Footer() {
           <ul className="space-y-2.5 text-sm text-zinc-600">
             <li className="flex gap-2.5">
               <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-[#12509b]" />
-              <span>
-                House 12, Road 5, Dhanmondi,
-                <br />
-                Dhaka-1205, Bangladesh
-              </span>
+              <span>{settings.contact_address}</span>
             </li>
             <li className="flex gap-2.5">
               <Phone className="mt-0.5 h-4 w-4 shrink-0 text-[#12509b]" />
-              <a href="tel:+8801700000000" className="hover:text-[#12509b]">
-                +880-1700-000000
+              <a
+                href={`tel:${settings.contact_phone.replace(/[^+\d]/g, "")}`}
+                className="hover:text-[#12509b]"
+              >
+                {settings.contact_phone}
               </a>
             </li>
             <li className="flex gap-2.5">
               <Mail className="mt-0.5 h-4 w-4 shrink-0 text-[#12509b]" />
-              <a href="mailto:support@loomora.com" className="hover:text-[#12509b]">
-                support@loomora.com
+              <a
+                href={`mailto:${settings.contact_email}`}
+                className="hover:text-[#12509b]"
+              >
+                {settings.contact_email}
               </a>
             </li>
           </ul>
@@ -154,22 +162,27 @@ export default function Footer() {
         <LinkColumn title="Help" links={helpLinks} />
 
         <div>
-          <h3 className="mb-3 text-base font-bold text-zinc-900">
-            Social Media for Loomora
-          </h3>
-          <div className="flex items-center gap-3">
-            {socials.map(({ label, Icon }) => (
-              <Link
-                key={label}
-                href="/#"
-                onClick={stop}
-                aria-label={label}
-                className="flex h-9 w-9 items-center justify-center rounded-full bg-[#12509b] text-white transition-opacity hover:opacity-85"
-              >
-                <Icon />
-              </Link>
-            ))}
-          </div>
+          {socials.length > 0 && (
+            <>
+              <h3 className="mb-3 text-base font-bold text-zinc-900">
+                Social Media for {settings.store_name}
+              </h3>
+              <div className="flex items-center gap-3">
+                {socials.map(({ label, Icon, url }) => (
+                  <Link
+                    key={label}
+                    href={url!}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label={label}
+                    className="flex h-9 w-9 items-center justify-center rounded-full bg-[#12509b] text-white transition-opacity hover:opacity-85"
+                  >
+                    <Icon />
+                  </Link>
+                ))}
+              </div>
+            </>
+          )}
 
             <h3 className="mb-3 mt-6 text-base font-bold text-zinc-900">
               Download App
@@ -236,7 +249,7 @@ export default function Footer() {
 
         <div className="border-t border-zinc-200">
           <p className="px-4 py-5 text-center text-sm text-zinc-600">
-            © 2026 Loomora Lifestyle Ltd. All Rights Reserved.
+            © 2026 {settings.store_name} {settings.store_tagline}. All Rights Reserved.
           </p>
         </div>
       </footer>

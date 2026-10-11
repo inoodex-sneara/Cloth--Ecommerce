@@ -1,5 +1,7 @@
 "use client";
 
+import { validateCoupon, type CouponItem } from "@/lib/api/coupons";
+import { placeOrder } from "@/lib/api/orders";
 import { saveOrder } from "@/lib/orders";
 import { useCart, type CartItem } from "@/providers/CartProvider";
 import {
@@ -12,7 +14,9 @@ import {
   Plus,
   Printer,
   Smartphone,
+  Tag,
   Trash2,
+  X,
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -77,6 +81,8 @@ type InvoiceData = {
   items: CartItem[];
   billedSubtotal: number;
   discount: number;
+  couponDiscount: number;
+  couponCode?: string;
   deliveryCharge: number;
   total: number;
   date: string;
@@ -122,6 +128,17 @@ export default function CheckoutPage() {
   const [trxId, setTrxId] = useState("");
   const [invoice, setInvoice] = useState<InvoiceData | null>(null);
 
+  const [couponInput, setCouponInput] = useState("");
+  const [couponCode, setCouponCode] = useState("");
+  const [couponDiscount, setCouponDiscount] = useState(0);
+  const [freeShipping, setFreeShipping] = useState(false);
+  const [couponMsg, setCouponMsg] = useState("");
+  const [couponErr, setCouponErr] = useState(false);
+  const [couponLoading, setCouponLoading] = useState(false);
+
+  const [placing, setPlacing] = useState(false);
+  const [orderErr, setOrderErr] = useState("");
+
   const paymentLabel =
     paymentOptions.find((option) => option.id === payment)?.label ??
     "Cash on Delivery";
@@ -140,7 +157,7 @@ export default function CheckoutPage() {
   const [deliveryCity, setDeliveryCity] = useState("");
   const normalizedCity = deliveryCity.trim().toLowerCase();
   const insideDhaka = normalizedCity === "dhaka";
-  const deliveryCharge =
+  const baseDeliveryCharge =
     normalizedCity === ""
       ? 100
       : insideDhaka
@@ -148,26 +165,63 @@ export default function CheckoutPage() {
           ? 0
           : 100
         : 100;
-  const grandTotal = subtotal + deliveryCharge;
-  const deliveryHint =
-    normalizedCity === ""
+  const deliveryCharge = freeShipping ? 0 : baseDeliveryCharge;
+  const grandTotal = Math.max(0, subtotal - couponDiscount) + deliveryCharge;
+  const deliveryHint = freeShipping
+    ? "Free shipping applied"
+    : normalizedCity === ""
       ? "Select District for exact charge"
       : insideDhaka
         ? "Inside Dhaka — free on ৳148+ orders"
         : "Outside Dhaka — flat ৳100";
 
-  const handlePlaceOrder = (e: FormEvent<HTMLFormElement>) => {
+  const applyCoupon = async () => {
+    const code = couponInput.trim();
+    if (!code || items.length === 0) return;
+    setCouponLoading(true);
+    setCouponErr(false);
+    setCouponMsg("");
+    const couponItems: CouponItem[] = items.map((item) => ({
+      product_id: Number(item.id) || 0,
+      quantity: item.qty,
+      price: item.price,
+    }));
+    const result = await validateCoupon({
+      code,
+      subtotal,
+      items: couponItems,
+    });
+    setCouponLoading(false);
+    if (result.valid) {
+      setCouponCode(result.code ?? code);
+      setCouponDiscount(Math.min(result.discountAmount ?? 0, subtotal));
+      setFreeShipping(result.freeShipping ?? false);
+      setCouponMsg(result.message);
+      setCouponErr(false);
+    } else {
+      setCouponCode("");
+      setCouponDiscount(0);
+      setFreeShipping(false);
+      setCouponMsg(result.message);
+      setCouponErr(true);
+    }
+  };
+
+  const removeCoupon = () => {
+    setCouponInput("");
+    setCouponCode("");
+    setCouponDiscount(0);
+    setFreeShipping(false);
+    setCouponMsg("");
+    setCouponErr(false);
+  };
+
+  const handlePlaceOrder = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (items.length === 0) return;
+    if (items.length === 0 || placing) return;
     const data = new FormData(e.currentTarget);
     const wallet = String(data.get("wallet") ?? "");
     const trx = String(data.get("trxid") ?? "");
-    setWalletNumber(wallet);
-    setTrxId(trx);
-    const newOrderId = `LOOM-${Date.now().toString(36).toUpperCase()}${Math.floor(
-      Math.random() * 90 + 10
-    )}`;
-    setOrderId(newOrderId);
     const customer = {
       name: String(data.get("name") ?? ""),
       phone: String(data.get("phone") ?? ""),
@@ -177,41 +231,86 @@ export default function CheckoutPage() {
       postcode: String(data.get("postcode") ?? ""),
       delivery: String(data.get("delivery") ?? "home"),
     };
-    setInvoice({
-      items,
-      billedSubtotal,
-      discount,
-      deliveryCharge,
-      total: grandTotal,
-      date: new Date().toLocaleDateString("en-GB", {
-        day: "2-digit",
-        month: "short",
-        year: "numeric",
-      }),
-      customer,
-    });
-    saveOrder({
-      id: newOrderId,
-      placedAt: Date.now(),
-      payment,
-      wallet: wallet || undefined,
-      trx: trx || undefined,
-      total: grandTotal,
-      items: items.map((item) => ({
-        id: item.id,
-        name: item.name,
-        price: item.price,
-        oldPrice: item.oldPrice,
-        color: item.color,
-        src: item.src,
-        size: item.size,
-        qty: item.qty,
-      })),
-      customer,
-    });
-    setPlaced(true);
-    clear();
-    window.scrollTo({ top: 0, behavior: "instant" });
+
+    setPlacing(true);
+    setOrderErr("");
+    try {
+      const apiItems = items
+        .map((item) => ({
+          id: Number(item.id),
+          qty: item.qty,
+        }))
+        .filter((item) => Number.isInteger(item.id) && item.id > 0);
+
+      if (apiItems.length === 0) {
+        setOrderErr("Cart e valid product nei. Abar add kore nen.");
+        return;
+      }
+
+      const placed = await placeOrder({
+        name: customer.name,
+        phone: customer.phone,
+        address: customer.address,
+        area: customer.area || undefined,
+        city: customer.city,
+        postcode: customer.postcode || undefined,
+        payment,
+        wallet: wallet || undefined,
+        trxid: trx || undefined,
+        delivery_charge: deliveryCharge,
+        coupon_code: couponCode || undefined,
+        items: apiItems,
+      });
+
+      setWalletNumber(wallet);
+      setTrxId(trx);
+      setOrderId(placed.orderNumber);
+      setInvoice({
+        items,
+        billedSubtotal,
+        discount,
+        couponDiscount,
+        couponCode: couponCode || undefined,
+        deliveryCharge,
+        total: grandTotal,
+        date: new Date().toLocaleDateString("en-GB", {
+          day: "2-digit",
+          month: "short",
+          year: "numeric",
+        }),
+        customer,
+      });
+      saveOrder({
+        id: placed.orderNumber,
+        placedAt: Date.now(),
+        payment,
+        wallet: wallet || undefined,
+        trx: trx || undefined,
+        total: grandTotal,
+        items: items.map((item) => ({
+          id: item.id,
+          name: item.name,
+          price: item.price,
+          oldPrice: item.oldPrice,
+          color: item.color,
+          src: item.src,
+          size: item.size,
+          qty: item.qty,
+        })),
+        customer,
+      });
+      setPlaced(true);
+      clear();
+      window.scrollTo({ top: 0, behavior: "instant" });
+    } catch (err) {
+      setOrderErr(
+        err instanceof Error && err.message
+          ? err.message
+          : "Order place korte parini. Abar try koren."
+      );
+    } finally {
+      setPlacing(false);
+    }
   };
 
   const downloadInvoice = async () => {
@@ -338,6 +437,18 @@ export default function CheckoutPage() {
     doc.text("Discount", R - 70, y, { align: "right" });
     doc.text(`- ${invoice.discount.toFixed(2)}`, R, y, { align: "right" });
     y += 13;
+    if (invoice.couponDiscount > 0) {
+      doc.text(
+        `Coupon (${invoice.couponCode})`,
+        R - 70,
+        y,
+        { align: "right" }
+      );
+      doc.text(`- ${invoice.couponDiscount.toFixed(2)}`, R, y, {
+        align: "right",
+      });
+      y += 13;
+    }
     doc.setTextColor(70, 70, 70);
     doc.text("Delivery Charge", R - 70, y, { align: "right" });
     doc.text(
@@ -547,6 +658,12 @@ export default function CheckoutPage() {
                 <span>Discount</span>
                 <span>- ৳ {invoice.discount.toLocaleString()}</span>
               </div>
+              {invoice.couponDiscount > 0 && (
+                <div className="flex justify-between text-red-600">
+                  <span>Coupon ({invoice.couponCode})</span>
+                  <span>- ৳ {invoice.couponDiscount.toLocaleString()}</span>
+                </div>
+              )}
               <div className="flex justify-between text-zinc-600">
                 <span>Delivery Charge</span>
                 <span
@@ -999,6 +1116,64 @@ export default function CheckoutPage() {
         <aside className="h-fit rounded-xl border border-zinc-200 bg-white p-5 shadow-sm xl:sticky xl:top-32">
           <h2 className="text-lg font-extrabold text-zinc-900">Your Bill</h2>
 
+          {/* Coupon */}
+          <div className="mt-4">
+            {couponCode ? (
+              <div className="flex items-center justify-between gap-2 rounded-md border border-emerald-300 bg-emerald-50 px-3 py-2.5">
+                <span className="flex min-w-0 items-center gap-2 text-sm font-semibold text-emerald-800">
+                  <Tag className="h-4 w-4 shrink-0" />
+                  <span className="truncate">{couponCode}</span>
+                  {couponDiscount > 0 && (
+                    <span className="shrink-0 text-emerald-600">
+                      -৳{couponDiscount.toLocaleString()}
+                    </span>
+                  )}
+                  {freeShipping && (
+                    <span className="shrink-0 text-emerald-600">Free ship</span>
+                  )}
+                </span>
+                <button
+                  type="button"
+                  onClick={removeCoupon}
+                  aria-label="Remove coupon"
+                  className="shrink-0 text-emerald-700 transition-opacity hover:opacity-70"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+            ) : (
+              <div className="flex gap-2">
+                <input
+                  value={couponInput}
+                  onChange={(e) => setCouponInput(e.target.value)}
+                  placeholder="Coupon code"
+                  className="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm uppercase text-zinc-800 outline-none transition-colors placeholder:normal-case placeholder:text-zinc-400 focus:border-[#12509b]"
+                />
+                <button
+                  type="button"
+                  onClick={applyCoupon}
+                  disabled={couponLoading || !couponInput.trim()}
+                  className={`shrink-0 rounded-md px-4 text-sm font-bold transition-colors ${
+                    couponLoading || !couponInput.trim()
+                      ? "cursor-not-allowed bg-zinc-200 text-zinc-500"
+                      : "bg-[#12509b] text-white hover:opacity-90"
+                  }`}
+                >
+                  {couponLoading ? "..." : "Apply"}
+                </button>
+              </div>
+            )}
+            {couponMsg && (
+              <p
+                className={`mt-1.5 text-xs font-medium ${
+                  couponErr ? "text-red-600" : "text-emerald-600"
+                }`}
+              >
+                {couponMsg}
+              </p>
+            )}
+          </div>
+
           <div className="mt-4 space-y-3 text-sm text-zinc-700">
             <div className="flex justify-between">
               <span>Sub-Total</span>
@@ -1012,6 +1187,14 @@ export default function CheckoutPage() {
                 - ৳ {discount.toFixed(2)}
               </span>
             </div>
+            {couponDiscount > 0 && (
+              <div className="flex justify-between">
+                <span>Coupon ({couponCode})</span>
+                <span className="font-medium text-red-600">
+                  - ৳ {couponDiscount.toFixed(2)}
+                </span>
+              </div>
+            )}
             <div className="flex justify-between">
               <span>Delivery Charge</span>
               <span
@@ -1038,17 +1221,23 @@ export default function CheckoutPage() {
             </span>
           </div>
 
+          {orderErr && (
+            <p className="mt-3 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-xs font-medium text-red-600">
+              {orderErr}
+            </p>
+          )}
+
           <button
             type="submit"
             form="checkout-form"
-            disabled={!formValid}
+            disabled={!formValid || placing}
             className={`mt-5 w-full rounded-md py-3.5 text-sm font-bold tracking-wide transition-colors ${
-              formValid
+              formValid && !placing
                 ? "bg-[#12509b] text-white hover:opacity-90"
                 : "cursor-not-allowed bg-zinc-200 text-zinc-500"
             }`}
           >
-            Continue to Shipping
+            {placing ? "Placing Order..." : "Continue to Shipping"}
           </button>
 
           <p className="mt-3 text-center text-xs text-zinc-500">

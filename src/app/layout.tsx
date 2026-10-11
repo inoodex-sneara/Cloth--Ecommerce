@@ -4,6 +4,8 @@ import ChatWidget from "@/components/ChatWidget";
 import Footer from "@/components/Footer";
 import Navbar from "@/components/Navbar";
 import ScrollToTop from "@/components/ScrollToTop";
+import { API_BASE_URL } from "@/lib/api/client";
+import { getSettings } from "@/lib/api/settings";
 import { CartProvider } from "@/providers/CartProvider";
 import { GsapProvider } from "@/providers/GsapProvider";
 import { SmoothScrollProvider } from "@/providers/SmoothScrollProvider";
@@ -20,12 +22,22 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-export const metadata: Metadata = {
-  title: "Loomora",
-  description: "Loomora Lifestyle — shop clothing, accessories and more.",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const settings = await getSettings();
+  const title = `${settings.store_name} — ${settings.store_tagline}`;
+  const description = `${settings.store_name} Lifestyle — shop clothing, accessories and more.`;
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+  return {
+    title,
+    description,
+    icons: settings.store_favicon
+      ? { icon: `${API_BASE_URL.replace("/api/v1", "")}${settings.store_favicon}` }
+      : undefined,
+  };
+}
+
+export default async function RootLayout({ children }: LayoutProps<"/">) {
+  const settings = await getSettings();
   return (
     <html
       lang="en"
@@ -37,9 +49,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
             <CartProvider>
               <WishlistProvider>
                 <ScrollToTop />
-                <Navbar />
+                <Navbar settings={settings} />
                 {children}
-                <Footer />
+                <Footer settings={settings} />
                 <ChatWidget />
               </WishlistProvider>
             </CartProvider>

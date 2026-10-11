@@ -26,7 +26,7 @@ export default function NavMegaMenu({
     <div className="group relative hidden lg:block">
       <Link
         href={label === "Mens" ? "/men" : "/women"}
-        className={`whitespace-nowrap text-[13px] transition-colors hover:text-[#12509b] xl:text-sm ${
+        className={`whitespace-nowrap text-sm transition-colors hover:text-[#12509b] xl:text-[15px] ${
           active
             ? "font-bold text-[#12509b] underline underline-offset-4"
             : "font-medium text-zinc-700"

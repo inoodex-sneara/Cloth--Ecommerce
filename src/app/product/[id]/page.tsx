@@ -1,14 +1,15 @@
 import ProductDetail from "@/components/ProductDetail";
-import { catalog, getProduct } from "@/lib/catalog";
+import { getApiProductDetail } from "@/lib/api/products";
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
 export async function generateMetadata({
   params,
 }: {
   params: Promise<{ id: string }>;
-}) {
+}): Promise<Metadata> {
   const { id } = await params;
-  const product = getProduct(id);
+  const product = (await getApiProductDetail(id))?.product;
 
   if (!product) {
     return { title: "Product Not Found — Loomora" };
@@ -30,7 +31,8 @@ export default async function ProductPage({
   const { id } = await params;
   const sp = await searchParams;
 
-  const product = getProduct(id);
+  const fromApi = await getApiProductDetail(id);
+  const product = fromApi?.product;
   if (!product) notFound();
 
   const price =
@@ -42,20 +44,10 @@ export default async function ProductPage({
       ? Number(sp.old)
       : undefined;
 
-  const prefix = product.category.split(" ")[0];
-  const related = [
-    ...catalog.filter(
-      (item) => item.id !== product.id && item.category.startsWith(prefix)
-    ),
-    ...catalog.filter(
-      (item) => item.id !== product.id && !item.category.startsWith(prefix)
-    ),
-  ].slice(0, 6);
-
   return (
     <ProductDetail
       product={product}
-      related={related}
+      related={fromApi?.related ?? []}
       price={price}
       oldPrice={oldPrice}
     />

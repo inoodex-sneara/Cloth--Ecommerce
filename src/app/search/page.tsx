@@ -1,42 +1,16 @@
 import type { CatalogProduct } from "@/components/CatalogPageLayout";
 import { ProductCard } from "@/components/ProductCard";
-import { catalog } from "@/lib/catalog";
+import { getProducts } from "@/lib/api/products";
 import { Search, SearchX } from "lucide-react";
 import Link from "next/link";
 
 export const metadata = {
   title: "Search — Loomora",
   description:
-    "Search Loomora for panjabi, saree, kurti, polo, denim, frock and more — 32 styles, one search away.",
+    "Search Loomora for panjabi, saree, kurti, polo, denim, frock and more — one search away.",
 };
 
 const suggestions = ["Saree", "Polo", "Denim", "Frock", "Jacket", "Hoodie", "Kurti", "Shirt", "Sweatshirt"];
-
-function searchProducts(query: string): CatalogProduct[] {
-  const q = query.trim().toLowerCase();
-  if (!q) return [];
-
-  const words = q.split(/\s+/).filter(Boolean);
-
-  return catalog.filter((product) => {
-    const searchableText = [
-      product.name,
-      product.category,
-      product.brand,
-      product.colorName,
-      product.productType,
-      product.fabric,
-      product.fit,
-      ...(product.addition || []),
-      ...(product.festive || []),
-    ]
-      .filter(Boolean)
-      .join(" ")
-      .toLowerCase();
-
-    return words.every((word) => searchableText.includes(word));
-  });
-}
 
 export default async function SearchPage({
   searchParams,
@@ -45,7 +19,10 @@ export default async function SearchPage({
 }) {
   const { q = "" } = await searchParams;
   const query = q.trim();
-  const results = searchProducts(query);
+  const api = await getProducts(
+    query ? { search: query, per_page: 100 } : { per_page: 100 }
+  );
+  const results: CatalogProduct[] = api?.products ?? [];
 
   return (
     <div className="w-full bg-white">
@@ -86,7 +63,8 @@ export default async function SearchPage({
         ) : (
           <p className="mt-5 text-sm text-zinc-500">
             Search for products, categories, or colors —{" "}
-            <b className="text-zinc-900">{catalog.length}</b> products available.
+            <b className="text-zinc-900">{results.length}</b> products
+            available.
           </p>
         )}
 
@@ -126,7 +104,7 @@ export default async function SearchPage({
         {/* Browse all (no query) */}
         {!query && (
           <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {catalog.map((product) => (
+            {results.map((product) => (
               <ProductCard key={product.id} product={product} />
             ))}
           </div>

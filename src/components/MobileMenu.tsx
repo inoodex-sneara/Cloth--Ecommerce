@@ -1,12 +1,18 @@
 "use client";
 
-import { navLinks } from "@/lib/navigation";
+import type { NavLink } from "@/lib/navigation";
 import { useSmoothScroll } from "@/providers/SmoothScrollProvider";
 import { MapPin, Menu, ShoppingCart, SlidersHorizontal, Truck, User, X } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 
-export default function MobileMenu() {
+export default function MobileMenu({
+  storeName,
+  navLinks,
+}: {
+  storeName: string;
+  navLinks: NavLink[];
+}) {
   const [open, setOpen] = useState(false);
   const lenisRef = useSmoothScroll();
 
@@ -52,7 +58,7 @@ export default function MobileMenu() {
           />
           <div className="absolute inset-y-0 left-0 flex w-72 max-w-[85vw] flex-col bg-white shadow-2xl">
             <div className="flex h-14 shrink-0 items-center justify-between border-b border-zinc-200 px-4">
-              <span className="text-lg font-extrabold text-[#12509b]">Loomora</span>
+              <span className="text-lg font-extrabold text-[#12509b]">{storeName}</span>
               <button
                 type="button"
                 onClick={close}

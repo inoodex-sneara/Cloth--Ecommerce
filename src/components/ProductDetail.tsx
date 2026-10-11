@@ -22,6 +22,7 @@ import { useRouter } from "next/navigation";
 import { useRef, useState, type MouseEvent } from "react";
 import { useCart } from "@/providers/CartProvider";
 import { useWishlist } from "@/providers/WishlistProvider";
+import ProductReviews from "@/components/ProductReviews";
 
 const tabs = ["Description", "Specification", "Return Policy"] as const;
 
@@ -658,6 +659,9 @@ export default function ProductDetail({
             )}
           </div>
         </div>
+
+        {/* CUSTOMER REVIEWS */}
+        <ProductReviews productId={product.id} />
 
         {/* YOU MAY ALSO LIKE (RELATED PRODUCTS) */}
         <div className="mt-12">

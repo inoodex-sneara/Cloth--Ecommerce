@@ -60,7 +60,7 @@ export default function CategoryMenu() {
         type="button"
         onClick={() => setOpen((value) => !value)}
         aria-expanded={open}
-        className="flex items-center gap-2 whitespace-nowrap text-sm font-bold text-[#12509b]"
+        className="flex items-center gap-2 whitespace-nowrap text-[15px] font-bold text-[#12509b]"
       >
         <Menu className="h-4 w-4" />
         Shop By Category

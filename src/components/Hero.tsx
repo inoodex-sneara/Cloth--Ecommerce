@@ -1,4 +1,6 @@
 "use client";
+import type { HomeBanner, HomeCategory } from "@/lib/api/home";
+import { mediaUrl } from "@/lib/api/media";
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
@@ -8,58 +10,69 @@ type Slide = {
   href: string;
   kicker?: string;
   caption?: string;
+  cta?: string;
 };
-const slides: Slide[] = [
-  {
-    src: "/hero/he-1.avif",
-    kicker: "New Season",
-    title: "fresh drops",
-    caption: "Just landed — the latest styles to refresh your look",
-    href: "/new-in",
-  },
-  {
-    src: "/hero/he-2.avif",
-    kicker: "Best Deals",
-    title: "steal of a deal",
-    caption: "Limited-time prices across the whole store",
-    href: "/best-deals",
-  },
-  
-  
-  
- 
+type HeroTile = {
+  src: string;
+  label: string;
+  caption: string;
+  href: string;
+};
 
-];
-const heroTiles = [
-  {
-    src: "/images/men/men.avif",
-    label: "MENS",
-    caption: "Shirts, panjabis, denim & more",
-    href: "/men",
-  },
-  {
-    src: "/images/women/women.avif",
-    label: "WOMENS",
-    caption: "Kurtis, kameez, sarees & more",
-    href: "/women",
-  },
-  {
-    src: "/images/men/w-4.jpg",
-    label: "KIDS",
-    caption: "Playful styles for little ones",
-    href: "/kids",
-  },
-];
-export default function Hero() {
+function categoryLink(slug: string) {
+  if (["men", "women", "kids"].includes(slug)) return `/${slug}`;
+  return `/category/${slug}`;
+}
+
+function toSlides(banners: HomeBanner[]): Slide[] {
+  return banners.map((b) => ({
+    src: mediaUrl(b.image_url),
+    kicker: b.badge_text ?? undefined,
+    title: b.title,
+    caption: b.subtitle,
+    href: b.link_url,
+    cta: b.button_text ?? undefined,
+  }));
+}
+
+function toTiles(categories: HomeCategory[]): HeroTile[] {
+  return categories.map((c) => ({
+    src: mediaUrl(c.image),
+    label: c.name.toUpperCase(),
+    caption: c.description ?? "",
+    href: categoryLink(c.slug),
+  }));
+}
+
+export default function Hero({
+  slides: apiSlides,
+  banner: apiBanner,
+  categories: apiCategories,
+}: {
+  slides?: HomeBanner[];
+  banner?: HomeBanner;
+  categories?: HomeCategory[];
+}) {
+  const slides = toSlides(apiSlides ?? []);
+  const heroTiles = toTiles(apiCategories ?? []);
+
+  const banner = apiBanner
+    ? {
+        src: mediaUrl(apiBanner.image_url),
+        href: apiBanner.link_url,
+        alt: `${apiBanner.title} — ${apiBanner.subtitle}`,
+      }
+    : null;
+
   const [index, setIndex] = useState(0);
   const [paused, setPaused] = useState(false);
   useEffect(() => {
-    if (paused) return;
+    if (paused || slides.length === 0) return;
     const timer = setInterval(() => {
       setIndex((current) => (current + 1) % slides.length);
     }, 2500);
     return () => clearInterval(timer);
-  }, [paused]);
+  }, [paused, slides.length]);
   return (
     <>
       <section className="grid w-full gap-4 px-4 py-4 lg:grid-cols-[1.7fr_1fr]">
@@ -99,24 +112,26 @@ export default function Hero() {
                 href={slide.href}
                 className="mt-4 inline-flex h-10 items-center rounded-full bg-[#12509b] px-6 text-sm font-semibold text-white transition-opacity hover:opacity-90 [text-shadow:none]"
               >
-                Shop Now
+                {slide.cta ?? "Shop Now"}
               </Link>
             </div>
           </div>
         ))}
-        <div className="absolute bottom-4 left-1/2 z-10 flex -translate-x-1/2 items-center gap-2 rounded-full bg-black/30 px-2.5 py-1.5 backdrop-blur-sm">
-          {slides.map((slide, slideIndex) => (
-            <button
-              key={slide.src}
-              type="button"
-              onClick={() => setIndex(slideIndex)}
-              aria-label={`Go to slide ${slideIndex + 1}`}
-              className={`h-2.5 rounded-full transition-all ${
-                slideIndex === index ? "w-7 bg-white" : "w-2.5 bg-white/60"
-              }`}
-            />
-          ))}
-        </div>
+        {slides.length > 1 && (
+          <div className="absolute bottom-4 left-1/2 z-10 flex -translate-x-1/2 items-center gap-2 rounded-full bg-black/30 px-2.5 py-1.5 backdrop-blur-sm">
+            {slides.map((slide, slideIndex) => (
+              <button
+                key={slide.src}
+                type="button"
+                onClick={() => setIndex(slideIndex)}
+                aria-label={`Go to slide ${slideIndex + 1}`}
+                className={`h-2.5 rounded-full transition-all ${
+                  slideIndex === index ? "w-7 bg-white" : "w-2.5 bg-white/60"
+                }`}
+              />
+            ))}
+          </div>
+        )}
       </div>
       <div className="flex flex-col gap-4">
         {heroTiles.map((tile) => (
@@ -145,21 +160,23 @@ export default function Hero() {
         ))}
       </div>
       </section>
-      <section className="w-full px-4 pb-6">
-        <Link
-          href="/accessories"
-          aria-label="Sundry Blossom — Elevate Your Style"
-          className="group relative block aspect-[2/1] overflow-hidden rounded-xl bg-[#f0e6d9]"
-        >
-          <Image
-            src="/images/lo-1.png"
-            alt="Sundry Blossom — Elevate Your Style. Accessories for a brighter you."
-            fill
-            sizes="100vw"
-            className="object-cover object-top transition-transform duration-500 group-hover:scale-[1.03]"
-          />
-        </Link>
-      </section>
+      {banner && (
+        <section className="w-full px-4 pb-6">
+          <Link
+            href={banner.href}
+            aria-label={banner.alt}
+            className="group relative block aspect-[2/1] overflow-hidden rounded-xl bg-[#f0e6d9]"
+          >
+            <Image
+              src={banner.src}
+              alt={banner.alt}
+              fill
+              sizes="100vw"
+              className="object-cover object-top transition-transform duration-500 group-hover:scale-[1.03]"
+            />
+          </Link>
+        </section>
+      )}
     </>
   );
 }

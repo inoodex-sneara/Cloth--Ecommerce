@@ -1,6 +1,7 @@
 "use client";
 
-import { categoryHref, popularCategories } from "@/lib/categories";
+import type { HomeCategory } from "@/lib/api/home";
+import { mediaUrl } from "@/lib/api/media";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -22,10 +23,20 @@ function animateScroll(scroller: HTMLDivElement, target: number, duration = 700)
   requestAnimationFrame(step);
 }
 
-export default function PopularCategories() {
+export default function PopularCategories({
+  categories: apiCategories,
+}: {
+  categories?: HomeCategory[];
+}) {
   const scrollerRef = useRef<HTMLDivElement>(null);
   const directionRef = useRef<1 | -1>(1);
   const [revealed, setRevealed] = useState(false);
+
+  const items = (apiCategories ?? []).map((c) => ({
+    label: c.name,
+    src: mediaUrl(c.image),
+    href: `/category/${c.slug}`,
+  }));
 
   const getStep = (scroller: HTMLDivElement) => {
     const card = scroller.querySelector<HTMLElement>("a");
@@ -115,10 +126,10 @@ export default function PopularCategories() {
         ref={scrollerRef}
         className="flex gap-5 overflow-x-auto overscroll-x-contain [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
       >
-        {popularCategories.map((category, index) => (
+        {items.map((category, index) => (
           <Link
             key={category.label}
-            href={categoryHref(category.label)}
+            href={category.href}
             style={{ transitionDelay: `${index * 90}ms` }}
             className={`group/item flex w-36 shrink-0 flex-col items-center gap-3 transition-[transform,opacity] duration-500 ease-out sm:w-40 xl:w-48 2xl:w-60 ${
               revealed

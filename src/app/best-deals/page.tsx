@@ -1,4 +1,6 @@
-import { ArrowRight, Eye } from "lucide-react";
+import { campaignItemToDeal, getCampaigns } from "@/lib/api/campaigns";
+import { mediaUrl } from "@/lib/api/media";
+import { ArrowRight, Eye, PackageSearch } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 
@@ -30,250 +32,41 @@ type DealSection = {
   deals: Deal[];
 };
 
-const sections: DealSection[] = [
-  {
-    title: "Men's Style Deals",
-    href: "/men",
-    banner: {
-      label: "Men's Essentials",
-      off: "UPTO 40% OFF",
-      note: "STARTING ৳ 990",
-      img: "/hero/he-2.avif",
-    },
-    deals: [
-      {
-        id: "m-1",
-        name: "Mens Short Sleeves Polo Shirt - Slim Fit",
-        price: 990,
-        oldPrice: 1290,
-        color: "#6b7280",
-        src: "/images/men/men.avif",
-      },
-      {
-        id: "m-3",
-        name: "Mens Dark Wash Denim Pant - Slim Fit",
-        price: 1590,
-        oldPrice: 1990,
-        color: "#1e3a8a",
-        src: "/images/men/w-2.jpg",
-      },
-      {
-        id: "m-6",
-        name: "Mens Premium Rust Bomber Jacket - Regular Fit",
-        price: 1690,
-        oldPrice: 2500,
-        color: "#b45309",
-        src: "/images/c-1.avif",
-      },
-      {
-        id: "m-8",
-        name: "Mens Crisp Pure Egyptian Cotton White Shirt",
-        price: 1450,
-        oldPrice: 2100,
-        color: "#ffffff",
-        src: "/images/c-9.avif",
-      },
-      {
-        id: "m-9",
-        name: "Mens Classic Denim Trucker Jacket",
-        price: 1799,
-        oldPrice: 2199,
-        color: "#1e3a8a",
-        src: "/images/c-3.avif",
-      },
-      {
-        id: "m-10",
-        name: "Mens Heather Grey Cotton Crewneck Tee",
-        price: 750,
-        oldPrice: 1100,
-        color: "#71717a",
-        src: "/images/c-7.avif",
-      },
-    ],
-  },
-  {
-    title: "Ethnic Wear Deals",
-    href: "/women",
-    banner: {
-      label: "Eid & Puja Special",
-      off: "UPTO 50% OFF",
-      note: "FESTIVE COLLECTION",
-      gradient:
-        "bg-[linear-gradient(140deg,#7f1d1d_0%,#9f1239_55%,#e11d48_100%)]",
-    },
-    deals: [
-      {
-        id: "w-1",
-        name: "Womens Floral Embroidered Kurti Set - Regular Fit",
-        price: 2190,
-        oldPrice: 3200,
-        color: "#fda4af",
-        src: "/images/women/women.avif",
-      },
-      {
-        id: "w-2",
-        name: "Womens Crimson Silk Traditional Handwoven Saree",
-        price: 1290,
-        oldPrice: 1550,
-        color: "#dc2626",
-        src: "/images/women/m-1.jpg",
-      },
-      {
-        id: "w-3",
-        name: "Womens Rose Festive Printed Saree with Zari Border",
-        price: 1290,
-        oldPrice: 1550,
-        color: "#ec4899",
-        src: "/images/women/m-2.jpg",
-      },
-      {
-        id: "w-4",
-        name: "Womens Pearl White Classic Festive Saree",
-        price: 1290,
-        oldPrice: 1550,
-        color: "#e5e7eb",
-        src: "/images/women/m-3.jpg",
-      },
-      {
-        id: "w-5",
-        name: "Womens 2 Pcs Pastel Ensemble Set - Regular Fit",
-        price: 2450,
-        oldPrice: 3500,
-        color: "#f9a8d4",
-        src: "/images/women/m-4.jpg",
-      },
-      {
-        id: "w-6",
-        name: "Womens Ethnic Festive Kurti & Trouser 2 Pcs Set",
-        price: 2290,
-        oldPrice: 2690,
-        color: "#dc2626",
-        src: "/images/women/m-5.jpg",
-      },
-    ],
-  },
-  {
-    title: "Winter Wear Deals",
-    href: "/new-in",
-    banner: {
-      label: "Cozy Season Sale",
-      off: "UPTO 35% OFF",
-      note: "STAY WARM, STAY STYLISH",
-      gradient:
-        "bg-[linear-gradient(140deg,#0c4a6e_0%,#12509b_55%,#38bdf8_100%)]",
-    },
-    deals: [
-      {
-        id: "w-7",
-        name: "Womens Soft Cashmere Knit Cardigan - Rose",
-        price: 21230,
-        oldPrice: 27400,
-        color: "#fda4af",
-        src: "/images/c-10.avif",
-      },
-      {
-        id: "w-8",
-        name: "Womens Everyday Fleece Minimalist Sweatshirt",
-        price: 5250,
-        oldPrice: 6900,
-        color: "#f5f5f4",
-        src: "/images/c-2.avif",
-      },
-      {
-        id: "w-10",
-        name: "Womens Warm Cozy Winter Fleece Jacket",
-        price: 1890,
-        oldPrice: 2650,
-        color: "#e11d48",
-        src: "/images/c-5.avif",
-      },
-      {
-        id: "m-11",
-        name: "Mens Navy Fleece Hoodie & Denim Set",
-        price: 1049,
-        oldPrice: 1360,
-        color: "#12509b",
-        src: "/images/c-8.avif",
-      },
-      {
-        id: "k-8",
-        name: "Kids Cozy Knitted Cardigan Sweater",
-        price: 1099,
-        oldPrice: 1450,
-        color: "#fda4af",
-        src: "/images/c-10.avif",
-      },
-      {
-        id: "k-10",
-        name: "Kids Everyday Relaxed Fleece Sweatshirt",
-        price: 750,
-        oldPrice: 890,
-        color: "#f5f5f4",
-        src: "/images/c-2.avif",
-      },
-    ],
-  },
-  {
-    title: "Kids Deals",
-    href: "/kids",
-    banner: {
-      label: "Kids Collection",
-      off: "UPTO 45% OFF",
-      note: "FUN FOR EVERY AGE",
-      img: "/hero/he-1.avif",
-    },
-    deals: [
-      {
-        id: "k-1",
-        name: "Boys Cotton Pique Polo Shirt - Regular Fit",
-        price: 590,
-        oldPrice: 850,
-        color: "#0f766e",
-        src: "/images/men/w-1.jpg",
-      },
-      {
-        id: "k-3",
-        name: "Girls Floral Festive Printed Frock",
-        price: 990,
-        oldPrice: 1450,
-        color: "#fda4af",
-        src: "/images/women/women.avif",
-      },
-      {
-        id: "k-4",
-        name: "Girls 2 Pcs Pastel Traditional Kurti & Trouser Set",
-        price: 1190,
-        oldPrice: 1390,
-        color: "#f9a8d4",
-        src: "/images/women/m-4.jpg",
-      },
-      {
-        id: "k-9",
-        name: "Boys Classic Denim Trucker Jacket",
-        price: 1350,
-        oldPrice: 1890,
-        color: "#1e3a8a",
-        src: "/images/c-3.avif",
-      },
-      {
-        id: "k-6",
-        name: "Kids Warm Fleece Hoodie & Jogger Set",
-        price: 850,
-        oldPrice: 1150,
-        color: "#12509b",
-        src: "/images/c-8.avif",
-      },
-      {
-        id: "k-2",
-        name: "Boys Graphic Print Short Sleeve T-Shirt",
-        price: 390,
-        oldPrice: 490,
-        color: "#71717a",
-        src: "/images/c-7.avif",
-      },
-    ],
-  },
+const gradients = [
+  "bg-[linear-gradient(140deg,#0c4a6e_0%,#12509b_55%,#38bdf8_100%)]",
+  "bg-[linear-gradient(140deg,#7f1d1d_0%,#9f1239_55%,#e11d48_100%)]",
+  "bg-[linear-gradient(140deg,#14532d_0%,#166534_55%,#4ade80_100%)]",
+  "bg-[linear-gradient(140deg,#4c1d95_0%,#6d28d9_55%,#c084fc_100%)]",
 ];
+
+async function apiSections(): Promise<DealSection[]> {
+  const campaigns = await getCampaigns();
+  return campaigns
+    .filter((campaign) => (campaign.items?.length ?? 0) > 0)
+    .map((campaign, index) => ({
+      title: campaign.title,
+      href: `/search?q=${encodeURIComponent(campaign.title)}`,
+      banner: {
+        label: campaign.slug.replace(/-/g, " "),
+        off: "SPECIAL DEAL",
+        note: campaign.ends_at
+          ? `ENDS ${new Date(campaign.ends_at).toLocaleDateString("en-GB")}`
+          : "LIMITED TIME",
+        gradient: gradients[index % gradients.length],
+      },
+      deals: campaign.items.map((item) => {
+        const deal = campaignItemToDeal(item);
+        return {
+          id: deal.id,
+          name: deal.name,
+          price: deal.price,
+          oldPrice: deal.oldPrice,
+          color: "#71717a",
+          src: mediaUrl(deal.src),
+        };
+      }),
+    }));
+}
 
 function DealCard({ deal }: { deal: Deal }) {
   const save = deal.oldPrice - deal.price;
@@ -326,7 +119,9 @@ function DealCard({ deal }: { deal: Deal }) {
   );
 }
 
-export default function BestDealsPage() {
+export default async function BestDealsPage() {
+  const allSections = await apiSections();
+
   return (
     <div className="w-full bg-white">
       {/* Breadcrumb */}
@@ -339,7 +134,18 @@ export default function BestDealsPage() {
       </nav>
 
       <div className="space-y-6 px-4 pb-10">
-        {sections.map((section) => (
+        {allSections.length === 0 && (
+          <div className="rounded-2xl border border-zinc-200 bg-[#f7f8fc] p-10 text-center">
+            <PackageSearch className="mx-auto h-10 w-10 text-zinc-400" />
+            <h2 className="mt-4 text-lg font-bold text-zinc-900">
+              Akhon kono active deal nei
+            </h2>
+            <p className="mt-1.5 text-sm text-zinc-500">
+              Notun deal shuru hole ekhane chole ashbe.
+            </p>
+          </div>
+        )}
+        {allSections.map((section) => (
           <section
             key={section.title}
             className="rounded-3xl bg-[#f5f6f8] p-5 sm:p-7"

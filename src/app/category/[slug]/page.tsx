@@ -1,12 +1,9 @@
 import type { CatalogProduct } from "@/components/CatalogPageLayout";
 import { ProductCard } from "@/components/ProductCard";
-import { categorySlug, popularCategories } from "@/lib/categories";
-import { catalog } from "@/lib/catalog";
+import { getProducts } from "@/lib/api/products";
 import type { Metadata } from "next";
 import { PackageSearch } from "lucide-react";
 import Link from "next/link";
-
-const STOPWORDS = new Set(["and", "the", "for", "with", "all", "new"]);
 
 function titleize(slug: string) {
   return slug
@@ -14,23 +11,6 @@ function titleize(slug: string) {
     .filter(Boolean)
     .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
     .join(" ");
-}
-
-function productsForSlug(slug: string): CatalogProduct[] {
-  const exact = catalog.filter(
-    (product) => categorySlug(product.category) === slug
-  );
-  if (exact.length > 0) return exact;
-
-  const tokens = slug
-    .split("-")
-    .filter((token) => token.length > 2 && !STOPWORDS.has(token));
-  if (tokens.length === 0) return [];
-
-  return catalog.filter((product) => {
-    const haystack = `${product.name} ${product.productType ?? ""}`.toLowerCase();
-    return tokens.some((token) => haystack.includes(token));
-  });
 }
 
 export async function generateMetadata({
@@ -53,7 +33,8 @@ export default async function CategoryPage({
 }) {
   const { slug } = await params;
   const title = titleize(slug);
-  const products = productsForSlug(slug);
+  const api = await getProducts({ category: slug, per_page: 100 });
+  const products: CatalogProduct[] = api?.products ?? [];
 
   return (
     <div className="w-full bg-white">
@@ -89,14 +70,19 @@ export default async function CategoryPage({
               &quot;{title}&quot; ei category-te akhon product nei
             </h2>
             <p className="mt-1.5 text-sm text-zinc-500">
-              Notun stock elo-i ekhane chole ashbe. Tab somoy ei categories
+              Notun stock elo-i ekhane chole ashbe. Tab somoy ei collections
               dekhe nen:
             </p>
             <div className="mt-4 flex flex-wrap justify-center gap-2">
-              {popularCategories.slice(0, 6).map((category) => (
+              {[
+                { label: "Mens", href: "/men" },
+                { label: "Womens", href: "/women" },
+                { label: "Kids", href: "/kids" },
+                { label: "New In", href: "/new-in" },
+              ].map((category) => (
                 <Link
-                  key={category.label}
-                  href={`/search?q=${encodeURIComponent(category.label)}`}
+                  key={category.href}
+                  href={category.href}
                   className="rounded-full border border-[#12509b]/30 bg-white px-4 py-1.5 text-sm font-semibold text-[#12509b] transition-colors hover:bg-[#12509b] hover:text-white"
                 >
                   {category.label}
