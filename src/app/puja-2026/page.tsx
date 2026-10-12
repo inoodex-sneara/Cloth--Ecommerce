@@ -1,4 +1,10 @@
-import CampaignPage from "@/components/CampaignPage";
+import CampaignPage, {
+  type CollectionCard,
+  type DealOffer,
+} from "@/components/CampaignPage";
+import { getCampaignBySlug, getCampaigns } from "@/lib/api/campaigns";
+import { getHome } from "@/lib/api/home";
+import { mediaUrl } from "@/lib/api/media";
 
 export const metadata = {
   title: "PUJA-2026 — Festive Collection | Loomora",
@@ -6,7 +12,46 @@ export const metadata = {
     "Shop the PUJA-2026 festive collection at Loomora — ethnic wear, party formals and kids styles with special discounts.",
 };
 
-export default function Puja2026Page() {
+function categoryLink(slug: string) {
+  if (["men", "women", "kids"].includes(slug)) return `/${slug}`;
+  return `/category/${slug}`;
+}
+
+export default async function Puja2026Page() {
+  const [home, campaign] = await Promise.all([
+    getHome(),
+    getCampaignBySlug("puja-2026").then(
+      (c) => c ?? getCampaigns().then((list) => list[0] ?? null)
+    ),
+  ]);
+
+  const categories = home.categories.filter(
+    (c) => !["winter-wear", "couple-dress"].includes(c.slug)
+  );
+
+  const cards: CollectionCard[] = categories.slice(0, 3).map((c) => ({
+    image: mediaUrl(c.image),
+    label: c.name,
+    sub: c.description ?? "Shop the festive edit",
+    href: categoryLink(c.slug),
+  }));
+
+  const items = campaign?.items ?? [];
+  const spotlights: CollectionCard[] = items.slice(0, 3).map((it) => ({
+    image: mediaUrl(it.product.primary_image),
+    label: it.product.name,
+    sub: `৳ ${it.flash_price.toLocaleString()}`,
+    href: `/product/${it.product_id}`,
+  }));
+
+  const deals: DealOffer[] = items.map((it) => ({
+    id: String(it.product_id),
+    oldPrice: it.product.compare_price ?? it.product.price,
+    name: it.product.name,
+    price: it.flash_price,
+    src: mediaUrl(it.product.primary_image),
+  }));
+
   return (
     <CampaignPage
       eyebrow="Durga Puja Special"
@@ -14,58 +59,11 @@ export default function Puja2026Page() {
       off="UP TO 60% OFF"
       note="FESTIVE COLLECTION 2026"
       gradient="bg-[linear-gradient(135deg,#9a3412_0%,#c2410c_50%,#f59e0b_100%)]"
-      cards={[
-        {
-          image: "/images/men/men.avif",
-          label: "Men's Puja Casuals",
-          sub: "Shirts, Polo & Denim",
-          href: "/product/m-1",
-        },
-        {
-          image: "/images/men/w-1.jpg",
-          label: "Women's Puja Style",
-          sub: "Floral Dresses & Kurti",
-          href: "/product/w-2",
-        },
-        {
-          image: "/images/men/w-4.jpg",
-          label: "Kids Puja Fits",
-          sub: "Colorful & Comfy",
-          href: "/product/k-1",
-        },
-      ]}
-      spotlights={[
-        {
-          image: "/images/women/m-2.jpg",
-          label: "Men's Ethnic",
-          sub: "Soft-tone panjabi",
-          href: "/product/m-2",
-        },
-        {
-          image: "/images/c-6.avif",
-          label: "Party Blazers",
-          sub: "Formal evening edit",
-          href: "/product/m-7",
-        },
-        {
-          image: "/images/c-8.avif",
-          label: "Cozy Layers",
-          sub: "Hoodies & Sweatshirts",
-          href: "/product/m-11",
-        },
-      ]}
+      cards={cards}
+      spotlights={spotlights}
       dealTitle="Puja Special Deals"
       dealHref="/best-deals"
-      deals={[
-        { id: "w-2", oldPrice: 3600 },
-        { id: "w-4", oldPrice: 3400 },
-        { id: "m-7", oldPrice: 7900 },
-        { id: "m-6", oldPrice: 4500 },
-        { id: "k-5", oldPrice: 1990 },
-        { id: "k-7", oldPrice: 3200 },
-        { id: "w-9", oldPrice: 5200 },
-        { id: "m-1", oldPrice: 2400 },
-      ]}
+      deals={deals}
     />
   );
 }

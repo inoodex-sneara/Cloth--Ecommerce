@@ -18,6 +18,21 @@ export const getCampaigns = cache(async (): Promise<HomeCampaign[]> => {
   }
 });
 
+export const getCampaignBySlug = cache(
+  async (slug: string): Promise<HomeCampaign | null> => {
+    if (!/^[a-z0-9-]+$/.test(slug)) return null;
+    try {
+      const res = await apiFetch<{ success: boolean; data: HomeCampaign }>(
+        `/campaigns/${encodeURIComponent(slug)}`,
+        { cache: "no-store" }
+      );
+      return res.data ?? null;
+    } catch {
+      return null;
+    }
+  }
+);
+
 export function campaignItemToDeal(item: CampaignItem): {
   id: string;
   name: string;

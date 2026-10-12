@@ -30,7 +30,7 @@ function toSlides(banners: HomeBanner[]): Slide[] {
     kicker: b.badge_text ?? undefined,
     title: b.title,
     caption: b.subtitle,
-    href: b.link_url,
+    href: b.link_url || "/products",
     cta: b.button_text ?? undefined,
   }));
 }
@@ -59,7 +59,7 @@ export default function Hero({
   const banner = apiBanner
     ? {
         src: mediaUrl(apiBanner.image_url),
-        href: apiBanner.link_url,
+        href: apiBanner.link_url || "/products",
         alt: `${apiBanner.title} — ${apiBanner.subtitle}`,
       }
     : null;

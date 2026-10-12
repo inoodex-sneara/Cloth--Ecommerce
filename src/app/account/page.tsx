@@ -1,17 +1,32 @@
 "use client";
 
 import {
+  getMe,
+  loadToken,
+  login,
+  logout,
+  register,
+  saveSession,
+  type MeProfile,
+} from "@/lib/api/auth";
+import { apiErrorMessage } from "@/lib/api/client";
+import {
   ArrowRight,
   Check,
   Eye,
   EyeOff,
   Lock,
+  LogOut,
+  MapPin,
   Mail,
+  Package,
   Phone,
   User,
+  Wallet,
 } from "lucide-react";
 import Link from "next/link";
-import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 
 const inputClass =
   "h-11 w-full rounded-lg border border-zinc-300 bg-white pl-10 pr-4 text-sm text-zinc-900 outline-none transition-all placeholder:text-zinc-400 focus:border-[#12509b] focus:ring-2 focus:ring-[#12509b]/10";
@@ -20,6 +35,7 @@ const labelClass =
   "block text-xs font-bold uppercase tracking-wider text-zinc-700";
 
 export default function AuthPage() {
+  const router = useRouter();
   const [mode, setMode] = useState<"login" | "register">("login");
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -40,35 +56,216 @@ export default function AuthPage() {
   // Status & Feedback
   const [submitting, setSubmitting] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
+  const [errMsg, setErrMsg] = useState("");
 
-  const handleLogin = (e: React.FormEvent) => {
-    e.preventDefault();
-    setSubmitting(true);
+  // Auth session / profile
+  const [checked, setChecked] = useState(false);
+  const [signedIn, setSignedIn] = useState(false);
+  const [profile, setProfile] = useState<MeProfile | null>(null);
+  const [loggingOut, setLoggingOut] = useState(false);
 
-    setTimeout(() => {
-      setSubmitting(false);
-      setToast("Welcome back! You have successfully signed in.");
-      setTimeout(() => setToast(null), 3500);
-    }, 1000);
+  useEffect(() => {
+    let cancelled = false;
+    const token = loadToken();
+    if (!token) {
+      Promise.resolve().then(() => {
+        if (!cancelled) setChecked(true);
+      });
+      return () => {
+        cancelled = true;
+      };
+    }
+    getMe()
+      .then((p) => {
+        if (cancelled) return;
+        setProfile(p);
+        setSignedIn(true);
+      })
+      .catch(() => {
+        // invalid/expired token — treat as signed out
+      })
+      .finally(() => {
+        if (!cancelled) setChecked(true);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const showToast = (msg: string) => {
+    setToast(msg);
+    setTimeout(() => setToast(null), 3500);
   };
 
-  const handleRegister = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (submitting) return;
+    setSubmitting(true);
+    setErrMsg("");
+    try {
+      const session = await login({
+        identifier: identifier.trim(),
+        password,
+      });
+      saveSession(session);
+      showToast(`Welcome back, ${session.user.name}!`);
+      setTimeout(() => router.push("/"), 900);
+    } catch (err) {
+      setErrMsg(apiErrorMessage(err));
+      setSubmitting(false);
+    }
+  };
+
+  const handleRegister = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (submitting) return;
     if (registerPassword !== confirmPassword) {
-      alert("Passwords do not match!");
+      setErrMsg("Passwords do not match!");
       return;
     }
     setSubmitting(true);
-
-    setTimeout(() => {
+    setErrMsg("");
+    try {
+      const session = await register({
+        name: fullName.trim(),
+        phone: registerPhone.trim(),
+        email: registerEmail.trim(),
+        password: registerPassword,
+        password_confirmation: confirmPassword,
+      });
+      saveSession(session);
+      showToast("Account created successfully! Welcome to Loomora.");
+      setTimeout(() => router.push("/"), 900);
+    } catch (err) {
+      setErrMsg(apiErrorMessage(err));
       setSubmitting(false);
-      setToast("Account created successfully! Welcome to Loomora.");
-      setTimeout(() => {
-        setToast(null);
-        setMode("login");
-      }, 2500);
-    }, 1200);
+    }
   };
+
+  const handleLogout = async () => {
+    if (loggingOut) return;
+    setLoggingOut(true);
+    await logout();
+    setSignedIn(false);
+    setProfile(null);
+    setLoggingOut(false);
+    showToast("Signed out successfully.");
+  };
+
+  if (signedIn) {
+    return (
+      <div className="flex min-h-[calc(100vh-140px)] flex-1 items-center justify-center bg-[#f4f6fb] px-4 py-10 sm:py-14">
+        {toast && (
+          <div className="fixed bottom-6 right-6 z-50 flex items-center gap-3 rounded-xl bg-zinc-900 px-5 py-3.5 text-sm font-medium text-white shadow-2xl">
+            <span className="flex h-6 w-6 items-center justify-center rounded-full bg-emerald-500 text-white">
+              <Check className="h-4 w-4 stroke-[3]" />
+            </span>
+            <span>{toast}</span>
+          </div>
+        )}
+
+        <div className="w-full max-w-lg overflow-hidden rounded-3xl border border-zinc-200 bg-white px-6 py-8 shadow-[0_25px_60px_-25px_rgba(18,80,155,0.35)] sm:px-10 sm:py-12">
+          <div className="text-center">
+            <Link href="/" className="inline-flex flex-col items-center leading-none">
+              <span className="text-3xl font-black tracking-tight text-[#12509b]">
+                Loomora
+              </span>
+              <span className="mt-1.5 text-[10px] font-semibold uppercase tracking-[0.35em] text-zinc-500">
+                lifestyle ltd
+              </span>
+            </Link>
+          </div>
+
+          {profile && (
+            <div className="mt-8">
+              <div className="flex items-center gap-4">
+                <span className="flex h-14 w-14 items-center justify-center rounded-full bg-[#12509b]/10 text-xl font-black text-[#12509b]">
+                  {profile.name.charAt(0).toUpperCase()}
+                </span>
+                <div className="min-w-0">
+                  <h1 className="truncate text-xl font-extrabold tracking-tight text-zinc-900">
+                    {profile.name}
+                  </h1>
+                  <div className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-zinc-500">
+                    {profile.email && (
+                      <span className="flex items-center gap-1">
+                        <Mail className="h-3 w-3" />
+                        {profile.email}
+                      </span>
+                    )}
+                    {(profile.phone ?? profile.customer?.phone) && (
+                      <span className="flex items-center gap-1">
+                        <Phone className="h-3 w-3" />
+                        {profile.phone ?? profile.customer?.phone}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-6 grid grid-cols-2 gap-3">
+                <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-4">
+                  <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-zinc-500">
+                    <Package className="h-3.5 w-3.5" />
+                    Total Orders
+                  </div>
+                  <p className="mt-1.5 text-2xl font-black text-zinc-900">
+                    {profile.customer?.ordersCount ?? 0}
+                  </p>
+                </div>
+                <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-4">
+                  <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-zinc-500">
+                    <Wallet className="h-3.5 w-3.5" />
+                    Total Spent
+                  </div>
+                  <p className="mt-1.5 text-2xl font-black text-[#12509b]">
+                    ৳ {(profile.customer?.totalSpent ?? 0).toLocaleString()}
+                  </p>
+                </div>
+              </div>
+
+              {(profile.customer?.city || profile.customer?.address) && (
+                <div className="mt-3 flex items-start gap-2 rounded-xl border border-zinc-200 bg-zinc-50 p-4 text-sm text-zinc-700">
+                  <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-[#12509b]" />
+                  <span>
+                    {profile.customer?.address}
+                    {profile.customer?.city && `, ${profile.customer.city}`}
+                  </span>
+                </div>
+              )}
+
+              <div className="mt-6 space-y-3">
+                <Link
+                  href="/account/orders"
+                  className="flex h-12 w-full items-center justify-center gap-2 rounded-lg bg-[#12509b] text-sm font-bold tracking-wider text-white shadow-md shadow-[#12509b]/25 transition-all hover:bg-[#1660b8] active:scale-[0.99]"
+                >
+                  <Package className="h-4 w-4" />
+                  MY ORDERS
+                </Link>
+                <button
+                  type="button"
+                  onClick={handleLogout}
+                  disabled={loggingOut}
+                  className="flex h-12 w-full items-center justify-center gap-2 rounded-lg border border-zinc-300 text-sm font-bold tracking-wider text-zinc-700 transition-colors hover:border-red-300 hover:text-red-600 disabled:opacity-60"
+                >
+                  <LogOut className="h-4 w-4" />
+                  {loggingOut ? "SIGNING OUT..." : "SIGN OUT"}
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  if (!checked) {
+    return (
+      <div className="flex min-h-[calc(100vh-140px)] flex-1 items-center justify-center bg-[#f4f6fb] px-4">
+        <div className="h-10 w-10 animate-spin rounded-full border-2 border-zinc-200 border-t-[#12509b]" />
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-[calc(100vh-140px)] flex-1 items-center justify-center bg-[#f4f6fb] px-4 py-10 sm:py-14">
@@ -218,6 +415,12 @@ export default function AuthPage() {
                   <ArrowRight className="h-4 w-4" />
                 </button>
 
+                {errMsg && (
+                  <p className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-xs font-medium text-red-600">
+                    {errMsg}
+                  </p>
+                )}
+
                 {/* Social Login Divider */}
                 <div className="relative my-6 text-center">
                   <div className="absolute inset-0 flex items-center">
@@ -329,13 +532,14 @@ export default function AuthPage() {
                   </div>
                 </div>
 
-                {/* Email Address (Optional) */}
+                {/* Email Address */}
                 <div className="space-y-1.5">
                   <label className={labelClass}>
-                    Email Address (Optional)
+                    Email Address <span className="text-red-500">*</span>
                   </label>
                   <div className="relative">
                     <input
+                      required
                       type="email"
                       value={registerEmail}
                       onChange={(e) => setRegisterEmail(e.target.value)}
@@ -450,6 +654,12 @@ export default function AuthPage() {
                   {submitting ? "CREATING ACCOUNT..." : "CREATE ACCOUNT"}
                   <ArrowRight className="h-4 w-4" />
                 </button>
+
+                {errMsg && (
+                  <p className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-xs font-medium text-red-600">
+                    {errMsg}
+                  </p>
+                )}
               </form>
             )}
 

@@ -8,11 +8,11 @@ import Link from "next/link";
 const stop = (e: React.MouseEvent) => e.preventDefault();
 
 const companyLinks = [
-  { label: "Blogs", href: "/#" },
+  { label: "Blogs", href: "/blogs" },
   { label: "Media", href: "/#" },
   { label: "Careers", href: "/#" },
-  { label: "About Us", href: "/#" },
-  { label: "Contact Us", href: "/#" },
+  { label: "About Us", href: "/pages/about-us" },
+  { label: "Contact Us", href: "/contact" },
 ];
 
 const customerLinks = [
@@ -25,10 +25,10 @@ const customerLinks = [
 
 const helpLinks = [
   { label: "FAQs", href: "/#" },
-  { label: "Privacy Policy", href: "/#" },
+  { label: "Privacy Policy", href: "/pages/privacy-policy" },
   { label: "Cookies Policy", href: "/#" },
-  { label: "Terms & Conditions", href: "/#" },
-  { label: "Replacement Policy", href: "/#" },
+  { label: "Terms & Conditions", href: "/pages/terms-and-conditions" },
+  { label: "Replacement Policy", href: "/pages/shipping-and-returns" },
   { label: "EMI Terms & Conditions", href: "/#" },
 ];
 

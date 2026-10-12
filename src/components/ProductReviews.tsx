@@ -6,6 +6,7 @@ import {
   type ProductReviewsResult,
   type ProductReview,
 } from "@/lib/api/reviews";
+import { apiErrorMessage } from "@/lib/api/client";
 import { BadgeCheck, PenLine, Star } from "lucide-react";
 import { useEffect, useState, type FormEvent } from "react";
 
@@ -119,11 +120,7 @@ export default function ProductReviews({ productId }: { productId: string }) {
       setComment("");
       setRefreshKey((k) => k + 1);
     } catch (err) {
-      setErrMsg(
-        err instanceof Error && err.message
-          ? err.message
-          : "Review submit korte parini. Abar try koren."
-      );
+      setErrMsg(apiErrorMessage(err));
     } finally {
       setSubmitting(false);
     }

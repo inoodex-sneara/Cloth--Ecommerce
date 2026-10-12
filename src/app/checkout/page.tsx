@@ -1,6 +1,7 @@
 "use client";
 
 import { validateCoupon, type CouponItem } from "@/lib/api/coupons";
+import { apiErrorMessage } from "@/lib/api/client";
 import { placeOrder } from "@/lib/api/orders";
 import { saveOrder } from "@/lib/orders";
 import { useCart, type CartItem } from "@/providers/CartProvider";
@@ -303,11 +304,7 @@ export default function CheckoutPage() {
       clear();
       window.scrollTo({ top: 0, behavior: "instant" });
     } catch (err) {
-      setOrderErr(
-        err instanceof Error && err.message
-          ? err.message
-          : "Order place korte parini. Abar try koren."
-      );
+      setOrderErr(apiErrorMessage(err));
     } finally {
       setPlacing(false);
     }
