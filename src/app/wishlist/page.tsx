@@ -1,14 +1,39 @@
 "use client";
 
+import { useEffect, useState } from "react";
+import type { CatalogProduct } from "@/components/CatalogPageLayout";
 import { ProductCard } from "@/components/ProductCard";
-import { catalog } from "@/lib/catalog";
+import { getApiProductDetail } from "@/lib/api/products";
 import { HeartOff } from "lucide-react";
 import Link from "next/link";
 import { useWishlist } from "@/providers/WishlistProvider";
 
 export default function WishlistPage() {
   const { ids, remove } = useWishlist();
-  const products = catalog.filter((product) => ids.includes(product.id));
+  const [products, setProducts] = useState<CatalogProduct[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (ids.length === 0) {
+      setProducts([]);
+      return;
+    }
+    const controller = new AbortController();
+    setLoading(true);
+    Promise.all(
+      ids.map((id) =>
+        getApiProductDetail(id)
+          .then((res) => res?.product ?? null)
+          .catch(() => null)
+      )
+    ).then((list) => {
+      if (!controller.signal.aborted) {
+        setProducts(list.filter((p): p is CatalogProduct => p !== null));
+        setLoading(false);
+      }
+    });
+    return () => controller.abort();
+  }, [ids]);
 
   return (
     <div className="w-full bg-white">
@@ -29,7 +54,16 @@ export default function WishlistPage() {
           </p>
         </div>
 
-        {products.length > 0 ? (
+        {loading ? (
+          <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            {ids.map((id) => (
+              <div
+                key={id}
+                className="aspect-[3/4] animate-pulse rounded-xl bg-zinc-100"
+              />
+            ))}
+          </div>
+        ) : products.length > 0 ? (
           <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {products.map((product) => (
               <div key={product.id} className="relative">

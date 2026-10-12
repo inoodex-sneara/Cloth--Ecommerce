@@ -2,7 +2,8 @@
 
 import type { NavLink } from "@/lib/navigation";
 import { useSmoothScroll } from "@/providers/SmoothScrollProvider";
-import { MapPin, Menu, ShoppingCart, SlidersHorizontal, Truck, User, X } from "lucide-react";
+import { useWishlist } from "@/providers/WishlistProvider";
+import { Heart, Menu, ShoppingCart, Truck, User, X } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 
@@ -14,6 +15,7 @@ export default function MobileMenu({
   navLinks: NavLink[];
 }) {
   const [open, setOpen] = useState(false);
+  const { count: wishlistCount } = useWishlist();
   const lenisRef = useSmoothScroll();
 
   const close = useCallback(() => setOpen(false), []);
@@ -83,6 +85,7 @@ export default function MobileMenu({
 
               <hr className="my-2 border-zinc-200" />
 
+             
               <Link
                 href="/order-tracking"
                 onClick={close}
@@ -90,22 +93,6 @@ export default function MobileMenu({
               >
                 <Truck className="h-4 w-4" />
                 Order Tracking
-              </Link>
-              <Link
-                href="/outlets"
-                onClick={close}
-                className="flex items-center gap-2.5 px-4 py-3 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-50 hover:text-[#12509b]"
-              >
-                <SlidersHorizontal className="h-4 w-4" />
-                Outlets
-              </Link>
-              <Link
-                href="/stores"
-                onClick={close}
-                className="flex items-center gap-2.5 px-4 py-3 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-50 hover:text-[#12509b]"
-              >
-                <MapPin className="h-4 w-4" />
-                Store Locations
               </Link>
             </nav>
 

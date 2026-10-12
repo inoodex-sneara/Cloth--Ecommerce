@@ -103,7 +103,7 @@ function mapRelated(p: ApiRelatedProduct): CatalogProduct {
 export async function getApiProductDetail(
   id: string,
 ): Promise<{ product: CatalogProduct; related: CatalogProduct[] } | null> {
-  if (!/^\d+$/.test(id)) return null;
+  if (!id || typeof id !== "string") return null;
   try {
     const res = await apiFetch<ApiProductDetailResponse>(`/products/${id}`, {
       cache: "no-store",
@@ -163,12 +163,37 @@ export async function getProducts(
     const res = await apiFetch<ProductListResponse>(`/products${query}`, {
       cache: "no-store",
     });
+    const rawProducts = (res.data ?? []).map(mapApiProduct);
+    let products = rawProducts;
+
+    // Filter out false positive substring matches (e.g. "women" containing "men")
+    if (params.search) {
+      const s = params.search.trim().toLowerCase();
+      const tokens = s.split(/\s+/);
+      const isMenSearch = tokens.some((t) => t === "men" || t === "mens");
+      const isWomenSearch = tokens.some((t) => t === "women" || t === "womens");
+
+      if (isMenSearch && !isWomenSearch) {
+        products = products.filter((p) => {
+          const nameLower = p.name.toLowerCase();
+          const catLower = p.category.toLowerCase();
+          if (nameLower.includes("women") || catLower.includes("women")) {
+            return (
+              /\b(men|mens)\b/i.test(nameLower) ||
+              /\b(men|mens)\b/i.test(catLower)
+            );
+          }
+          return true;
+        });
+      }
+    }
+
     return {
-      products: (res.data ?? []).map(mapApiProduct),
+      products,
       page: res.meta?.current_page ?? 1,
       lastPage: res.meta?.last_page ?? 1,
       perPage: res.meta?.per_page ?? 16,
-      total: res.meta?.total ?? 0,
+      total: res.meta?.total ?? products.length,
     };
   } catch {
     return null;

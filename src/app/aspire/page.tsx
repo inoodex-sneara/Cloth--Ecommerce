@@ -1,4 +1,11 @@
-import CampaignPage from "@/components/CampaignPage";
+import CampaignPage, {
+  type CollectionCard,
+  type DealOffer,
+} from "@/components/CampaignPage";
+import { getCampaignBySlug, getCampaigns } from "@/lib/api/campaigns";
+import { getHome } from "@/lib/api/home";
+import { mediaUrl } from "@/lib/api/media";
+import { getProducts } from "@/lib/api/products";
 
 export const metadata = {
   title: "ASPIRE — Premium Line | Loomora",
@@ -6,7 +13,64 @@ export const metadata = {
     "ASPIRE by Loomora — handpicked premium ethnic wear, blazers, knitwear and signature pieces for the discerning.",
 };
 
-export default function AspirePage() {
+function categoryLink(slug: string) {
+  if (["men", "women", "kids"].includes(slug)) return `/${slug}`;
+  return `/category/${slug}`;
+}
+
+export default async function AspirePage() {
+  const [home, campaign, premiumProducts] = await Promise.all([
+    getHome(),
+    getCampaignBySlug("aspire").then(
+      (c) => c ?? getCampaigns().then((list) => list[0] ?? null)
+    ),
+    getProducts({ sort: "price_desc", per_page: 12 }),
+  ]);
+
+  const categories = home.categories.filter(
+    (c) => !["winter-wear", "couple-dress"].includes(c.slug)
+  );
+
+  const cards: CollectionCard[] = categories.slice(0, 3).map((c) => ({
+    image: mediaUrl(c.image),
+    label: c.name,
+    sub: c.description ?? "Curated premium edit",
+    href: categoryLink(c.slug),
+  }));
+
+  const items = campaign?.items ?? [];
+  const spotlights: CollectionCard[] =
+    items.length > 0
+      ? items.slice(0, 3).map((it) => ({
+          image: mediaUrl(it.product.primary_image),
+          label: it.product.name,
+          sub: `৳ ${it.flash_price.toLocaleString()}`,
+          href: `/product/${it.product_id}`,
+        }))
+      : (premiumProducts?.products ?? []).slice(0, 3).map((p) => ({
+          image: p.src,
+          label: p.name,
+          sub: `৳ ${p.price.toLocaleString()}`,
+          href: `/product/${p.id}`,
+        }));
+
+  const deals: DealOffer[] =
+    items.length > 0
+      ? items.map((it) => ({
+          id: String(it.product_id),
+          oldPrice: it.product.compare_price ?? it.product.price,
+          name: it.product.name,
+          price: it.flash_price,
+          src: mediaUrl(it.product.primary_image),
+        }))
+      : (premiumProducts?.products ?? []).map((p) => ({
+          id: p.id,
+          oldPrice: p.oldPrice ?? p.price,
+          name: p.name,
+          price: p.price,
+          src: p.src,
+        }));
+
   return (
     <CampaignPage
       eyebrow="The Premium Line"
@@ -14,58 +78,11 @@ export default function AspirePage() {
       off="EXCLUSIVE EDIT"
       note="HANDPICKED LUXURY PIECES"
       gradient="bg-[linear-gradient(135deg,#0f172a_0%,#1e293b_55%,#334155_100%)]"
-      cards={[
-        {
-          image: "/images/women/m-5.jpg",
-          label: "Men's Signature",
-          sub: "Premium panjabi edit",
-          href: "/product/m-7",
-        },
-        {
-          image: "/images/men/w-3.jpg",
-          label: "Women's Couture",
-          sub: "Designer kameez & sets",
-          href: "/product/w-5",
-        },
-        {
-          image: "/images/men/w-4.jpg",
-          label: "Kid's Style",
-          sub: "Mini fashion, max charm",
-          href: "/product/k-9",
-        },
-      ]}
-      spotlights={[
-        {
-          image: "/images/c-6.avif",
-          label: "Power Dressing",
-          sub: "Blazers & Formals",
-          href: "/product/m-7",
-        },
-        {
-          image: "/images/c-5.avif",
-          label: "Soft Layers",
-          sub: "Knitwear collection",
-          href: "/product/w-7",
-        },
-        {
-          image: "/images/c-1.avif",
-          label: "Bomber Edit",
-          sub: "Street premium",
-          href: "/product/m-6",
-        },
-      ]}
+      cards={cards}
+      spotlights={spotlights}
       dealTitle="The Aspire Edit"
       dealHref="/new-in"
-      deals={[
-        { id: "w-7", oldPrice: 27400 },
-        { id: "w-8", oldPrice: 7900 },
-        { id: "m-7", oldPrice: 5900 },
-        { id: "w-5", oldPrice: 3800 },
-        { id: "m-6", oldPrice: 2700 },
-        { id: "w-9", oldPrice: 3600 },
-        { id: "m-8", oldPrice: 2300 },
-        { id: "k-9", oldPrice: 2100 },
-      ]}
+      deals={deals}
     />
   );
 }

@@ -9,7 +9,8 @@ export async function generateMetadata({
   params: Promise<{ id: string }>;
 }): Promise<Metadata> {
   const { id } = await params;
-  const product = (await getApiProductDetail(id))?.product;
+  const fromApi = await getApiProductDetail(id);
+  const product = fromApi?.product;
 
   if (!product) {
     return { title: "Product Not Found — Loomora" };
@@ -35,6 +36,8 @@ export default async function ProductPage({
   const product = fromApi?.product;
   if (!product) notFound();
 
+  const related = fromApi?.related ?? [];
+
   const price =
     typeof sp.price === "string" && !Number.isNaN(Number(sp.price))
       ? Number(sp.price)
@@ -47,7 +50,7 @@ export default async function ProductPage({
   return (
     <ProductDetail
       product={product}
-      related={fromApi?.related ?? []}
+      related={related}
       price={price}
       oldPrice={oldPrice}
     />

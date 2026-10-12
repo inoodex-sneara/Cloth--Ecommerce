@@ -2,7 +2,6 @@
 
 import { trackOrder, type TrackedOrder } from "@/lib/api/track";
 import { mediaUrl } from "@/lib/api/media";
-import { loadOrders } from "@/lib/orders";
 import {
   BadgeCheck,
   Ban,
@@ -16,7 +15,7 @@ import {
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useState, type FormEvent } from "react";
+import { useState, type FormEvent } from "react";
 
 const HOUR = 3600_000;
 const DAY = 24 * HOUR;
@@ -109,19 +108,6 @@ export default function OrderTracking() {
   const [searched, setSearched] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errMsg, setErrMsg] = useState("");
-  const [recent, setRecent] = useState<{ id: string; phone: string }[]>([]);
-
-  useEffect(() => {
-    const frame = requestAnimationFrame(() => {
-      setRecent(
-        loadOrders()
-          .filter((o) => o.id.startsWith("ORD-"))
-          .slice(0, 5)
-          .map((o) => ({ id: o.id, phone: o.customer.phone }))
-      );
-    });
-    return () => cancelAnimationFrame(frame);
-  }, []);
 
   const search = async (id: string, tel: string) => {
     const cleanId = id.trim();
@@ -149,12 +135,6 @@ export default function OrderTracking() {
   const handleSearch = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     void search(orderId, phone);
-  };
-
-  const searchRecent = (entry: { id: string; phone: string }) => {
-    setOrderId(entry.id);
-    setPhone(entry.phone);
-    void search(entry.id, entry.phone);
   };
 
   const canSearch = orderId.trim().length > 0 && !loading;
@@ -229,20 +209,6 @@ export default function OrderTracking() {
           </div>
         </div>
 
-        {recent.length > 0 && (
-          <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-zinc-100 pt-4">
-            {recent.map((entry) => (
-              <button
-                key={entry.id}
-                type="button"
-                onClick={() => searchRecent(entry)}
-                className="rounded-full border border-[#12509b]/30 bg-[#12509b]/5 px-3 py-1.5 text-xs font-semibold text-[#12509b] transition-colors hover:bg-[#12509b] hover:text-white"
-              >
-                {entry.id}
-              </button>
-            ))}
-          </div>
-        )}
       </form>
 
       {/* Error */}

@@ -3,7 +3,7 @@
 import CategoryMenu from "@/components/CategoryMenu";
 import MensMenu from "@/components/MensMenu";
 import MobileMenu from "@/components/MobileMenu";
-import { catalog } from "@/lib/catalog";
+import { getProducts, type ProductListResult } from "@/lib/api/products";
 import WomensMenu from "@/components/WomensMenu";
 import { buildNavLinks } from "@/lib/navigation";
 import type { StoreSettings } from "@/lib/api/settings";
@@ -32,31 +32,28 @@ function SearchForm({
   const router = useRouter();
   const [query, setQuery] = useState("");
   const [isOpen, setIsOpen] = useState(false);
+  const [matches, setMatches] = useState<ProductListResult["products"]>([]);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // Instant live search matches
-  const trimmed = query.trim().toLowerCase();
-  const words = trimmed.split(/\s+/).filter(Boolean);
-  
-  const matches = trimmed
-    ? catalog
-        .filter((item) => {
-          const searchableText = [
-            item.name,
-            item.category,
-            item.brand,
-            item.colorName,
-            item.productType,
-            item.fabric,
-            item.fit,
-          ]
-            .filter(Boolean)
-            .join(" ")
-            .toLowerCase();
-          return words.every((word) => searchableText.includes(word));
-        })
-        .slice(0, 6)
-    : [];
+  // Live search via API (debounced)
+  useEffect(() => {
+    const trimmed = query.trim();
+    const controller = new AbortController();
+    const timer = setTimeout(() => {
+      if (trimmed.length < 2) {
+        setMatches([]);
+        return;
+      }
+      getProducts({ search: trimmed, per_page: 16 }).then((res) => {
+        if (!controller.signal.aborted)
+          setMatches((res?.products ?? []).slice(0, 6));
+      });
+    }, 300);
+    return () => {
+      clearTimeout(timer);
+      controller.abort();
+    };
+  }, [query]);
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -120,7 +117,7 @@ function SearchForm({
       </form>
 
       {/* Live search suggestions dropdown */}
-      {isOpen && trimmed.length > 0 && (
+      {isOpen && query.trim().length > 0 && (
         <div className="absolute left-0 right-0 top-full z-50 mt-1 max-h-96 overflow-y-auto rounded-lg border border-zinc-200 bg-white p-2 shadow-xl">
           {matches.length > 0 ? (
             <div className="flex flex-col gap-1">
