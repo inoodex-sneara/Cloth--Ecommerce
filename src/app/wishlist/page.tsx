@@ -14,12 +14,16 @@ export default function WishlistPage() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (ids.length === 0) {
-      setProducts([]);
-      return;
-    }
     const controller = new AbortController();
-    setLoading(true);
+    if (ids.length === 0) {
+      Promise.resolve().then(() => {
+        if (!controller.signal.aborted) setProducts([]);
+      });
+      return () => controller.abort();
+    }
+    Promise.resolve().then(() => {
+      if (!controller.signal.aborted) setLoading(true);
+    });
     Promise.all(
       ids.map((id) =>
         getApiProductDetail(id)
